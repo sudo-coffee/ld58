@@ -10,8 +10,6 @@ function items.base(world)
   local super = class.newItem(world)
   setmetatable(this, { __index = super })
 
-  this.held = true
-  this.active = true
   this.filter = { "room" }
 
   return this

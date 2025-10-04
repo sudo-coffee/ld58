@@ -1,4 +1,37 @@
+local input = require("input")
 local class = {}
+
+-- \ ------- \ ----------------------------------------------------------- \ --
+-- | helpers | ----------------------------------------------------------- | --
+-- \ ------- \ ----------------------------------------------------------- \ --
+
+-- In radians
+local function playerTurn(transform, vecX, vecY)
+  local position = lovr.math.vec3(transform:getPosition())
+  local orientation = lovr.math.quat(transform:getOrientation())
+  orientation = orientation * lovr.math.quat(vecX, 1, 0, 0)
+  orientation = lovr.math.quat(vecY, 0, 1, 0) * orientation
+  transform:set(position, orientation)
+end
+
+-- In meters
+local function getPlayerDelta(transform, vecX, vecZ)
+  local position = lovr.math.vec3(transform:getPosition())
+  local orientation = lovr.math.quat(transform:getOrientation())
+  local back = lovr.math.vec3(transform[9], 0, transform[11]):normalize()
+  local right = lovr.math.vec3(transform[1], 0, transform[3]):normalize()
+  local delta = right * vecX + back * vecZ
+  return delta.x, delta.y, delta.z
+end
+
+-- \ ----- \ ------------------------------------------------------------- \ --
+-- | const | ------------------------------------------------------------- | --
+-- \ ----- \ ------------------------------------------------------------- \ --
+
+local MAX_VELOCITY = 1
+local ACCELERATION = 40
+local DECELERATION = 10
+local TURN_SPEED = 2
 
 -- \ ------ \ ------------------------------------------------------------ \ --
 -- | player | ------------------------------------------------------------ | --
@@ -9,9 +42,33 @@ function class.newPlayer(world)
 
   this.world = world
   this.collider = this.world:newCylinderCollider(0, 0, 0, 0.2, 1.5)
+  this.camera = lovr.math.newMat4()
+  this.velocity = lovr.math.newVec3()
+
+  -- Collider setup
+  this.collider:setMass(99999999)
+  this.collider:setGravityScale(.4)
 
   function this:update(dt)
-    -- move player here
+    -- Input vectors
+    local moveX, _, moveZ = input.getMoveVector()
+    local turnX, turnY, _ = input.getTurnVector()
+
+    -- Update camera rotation
+    playerTurn(this.camera, turnX, turnY)
+
+    -- Update velocity
+    local deltaX, _, deltaZ = getPlayerDelta(this.camera, moveX, moveZ)
+    local deltaH = lovr.math.vec2(deltaX, deltaZ)
+    local _, oldY, _ = this.collider:getLinearVelocity()
+    local newH = lovr.math.vec2(oldX, oldZ)
+    if deltaH:length() == 0 then newH:div(DECELERATION) end
+    newH:add(deltaH * dt * ACCELERATION)
+    newH:div(math.max(1, newH:length() / MAX_VELOCITY))
+
+    -- Update Collider
+    this.collider:setLinearVelocity(newH.x, oldY, newH.y)
+    this.collider:setOrientation()
   end
 
   return this
