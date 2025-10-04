@@ -9,8 +9,17 @@ local class = {}
 local function playerTurn(transform, vecX, vecY)
   local position = lovr.math.vec3(transform:getPosition())
   local orientation = lovr.math.quat(transform:getOrientation())
-  orientation = orientation * lovr.math.quat(vecX, 1, 0, 0)
-  orientation = lovr.math.quat(vecY, 0, 1, 0) * orientation
+  local radX, radY, radZ = orientation:getEuler()
+  local degX, degY, degZ = math.deg(radX), math.deg(radY), math.deg(radZ)
+  degX = degX + math.deg(vecX)
+  degY = degY + math.deg(vecY)
+  degZ = 0
+  if degX >   89 then degX =         89 end
+  if degX <  -89 then degX =        -89 end
+  if degY >  180 then degY = degY - 360 end
+  if degY < -180 then degY = degY + 360 end
+  radX, radY, radZ = math.rad(degX), math.rad(degY), math.deg(degZ)
+  orientation:setEuler(radX, radY, radZ)
   transform:set(position, orientation)
 end
 
