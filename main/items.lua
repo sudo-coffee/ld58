@@ -1,9 +1,8 @@
 local class = require("class")
-local groups = require("groups")
 local items = {}
 
 -- \ ---- \ -------------------------------------------------------------- \ --
--- | Base | -------------------------------------------------------------- | --
+-- | base | -------------------------------------------------------------- | --
 -- \ ---- \ -------------------------------------------------------------- \ --
 
 function items.base(world)
@@ -11,21 +10,9 @@ function items.base(world)
   local super = class.newItem(world)
   setmetatable(this, { __index = super })
 
-  this.groups = { groups.base }
-
-  return this
-end
-
--- \ ---- \ -------------------------------------------------------------- \ --
--- | Test | -------------------------------------------------------------- | --
--- \ ---- \ -------------------------------------------------------------- \ --
-
-function items.two(world)
-  local this = {}
-  local super = class.newItem(world)
-  setmetatable(this, { __index = super })
-
-  this.group = { groups.base, groups.two }
+  this.held = true
+  this.active = true
+  this.filter = { "room" }
 
   return this
 end

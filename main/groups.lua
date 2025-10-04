@@ -1,25 +1,19 @@
 local class = require("class")
-local groups = require("groups")
-local items = require("items")
-local levels = {}
+local groups = {}
 
 -- \ ---- \ -------------------------------------------------------------- \ --
--- | main | -------------------------------------------------------------- | --
+-- | room | -------------------------------------------------------------- | --
 -- \ ---- \ -------------------------------------------------------------- \ --
 
-function levels.main()
+function groups.room(world)
   local this = {}
-  local super = class.newLevel()
+  local super = class.newGroup(world)
   setmetatable(this, { __index = super })
 
-  do
-    local group = groups.room(this.world)
-    table.insert(this.groups, group)
-  end
+  this.name = "room"
 
-  do
-    local item = items.base(this.world)
-    table.insert(this.items, item)
+  function this:draw(pass)
+    super:draw(pass)
   end
 
   return this
@@ -29,4 +23,4 @@ end
 -- | --------------------------------------------------------------------- | --
 -- \ --------------------------------------------------------------------- \ --
 
-return levels
+return groups
