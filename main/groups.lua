@@ -12,8 +12,15 @@ function groups.room(world)
 
   this.name = "room"
 
+  do
+    local collider = this.world:newBoxCollider(0, -0.5, 0, 10, 1, 10)
+    collider:setKinematic(true)
+    table.insert(this.colliders, collider)
+  end
+
   function this:draw(pass)
     super:draw(pass)
+    pass:box(0, -0.5, 0, 10, 1, 10)
   end
 
   return this

@@ -17,11 +17,22 @@ end
 -- In meters
 local function getPlayerDelta(transform, vecX, vecZ)
   local position = lovr.math.vec3(transform:getPosition())
-  local orientation = lovr.math.quat(transform:getOrientation())
   local back = lovr.math.vec3(transform[9], 0, transform[11]):normalize()
   local right = lovr.math.vec3(transform[1], 0, transform[3]):normalize()
   local delta = right * vecX + back * vecZ
   return delta.x, delta.y, delta.z
+end
+
+local function printPlayerInfo(player)
+  local colX, colY, colZ = player.collider:getPosition()
+  local camX, camY, camZ = player.camera:getPosition()
+  local orientation = lovr.math.quat(player.camera:getOrientation())
+  local radX, radY, radZ = orientation:getEuler()
+  local degX, degY, degZ = math.deg(radX), math.deg(radY), math.deg(radZ)
+  print()
+  print(string.format("collider : % 5.2f % 5.2f % 5.2f", colX, colY, colZ))
+  print(string.format("camera   : % 5.2f % 5.2f % 5.2f", camX, camY, camZ))
+  print(string.format("rotation : % 5.2f % 5.2f % 5.2f", degX, degY, degZ))
 end
 
 -- \ ----- \ ------------------------------------------------------------- \ --
@@ -31,7 +42,8 @@ end
 local MAX_VELOCITY = 1
 local ACCELERATION = 40
 local DECELERATION = 10
-local TURN_SPEED = 2
+local TURN_SPEED = 1
+local EYE_HEIGHT = 1.3
 
 -- \ ------ \ ------------------------------------------------------------ \ --
 -- | player | ------------------------------------------------------------ | --
@@ -55,7 +67,7 @@ function class.newPlayer(world)
     local turnX, turnY, _ = input.getTurnVector()
 
     -- Update camera rotation
-    playerTurn(this.camera, turnX, turnY)
+    playerTurn(this.camera, turnX * TURN_SPEED, turnY * TURN_SPEED)
 
     -- Update velocity
     local deltaX, _, deltaZ = getPlayerDelta(this.camera, moveX, moveZ)
@@ -69,6 +81,12 @@ function class.newPlayer(world)
     -- Update Collider
     this.collider:setLinearVelocity(newH.x, oldY, newH.y)
     this.collider:setOrientation()
+
+    -- Update camera position
+    local posX, posY, posZ = this.collider:getPosition()
+    local position = lovr.math.vec3(posX, posY + EYE_HEIGHT, posZ)
+    local orientation = lovr.math.quat(this.camera:getOrientation())
+    this.camera:set(position, orientation)
   end
 
   return this
@@ -105,7 +123,9 @@ function class.newItem(world)
   this.filter = {}
 
   function this:update(dt) end
+  function this:renderStart() end
   function this:renderGroup(group) end
+  function this:renderEnd() end
   function this:drawRender(pass) end
   function this:drawItem(pass) end
   function this:drawBubble(pass) end
@@ -128,13 +148,16 @@ function class.newLevel()
   local function renderGroups()
     for _, item in ipairs(this.items) do
       if item.active then
+        item:renderStart()
         for _, group in ipairs(this.groups) do
           for _, name in ipairs(item.filter) do
             if item.name == name then
               item:renderGroup(group)
+              print("hi")
             end
           end
         end
+        item:renderEnd()
       end
     end
   end
@@ -142,7 +165,7 @@ function class.newLevel()
   local function drawRenders(pass)
     for _, item in ipairs(this.items) do
       if item.active then
-        item.drawRender(pass)
+        item:drawRender(pass)
       end
     end
   end
@@ -175,10 +198,13 @@ function class.newLevel()
   end
 
   function this:draw(pass)
+    pass:push()
+    pass:transform(this.player.camera)
     renderGroups()
     drawRenders(pass)
     drawItems(pass)
     drawBubbles(pass)
+    pass:pop()
   end
 
   function this:update(dt)
@@ -190,6 +216,7 @@ function class.newLevel()
     end
     this.player:update(dt)
     this.world:update(dt)
+    printPlayerInfo(this.player)
   end
 
   return this
