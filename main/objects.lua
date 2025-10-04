@@ -1,18 +1,21 @@
 local class = require("class")
+local groups = require("groups")
 local objects = {}
 
 -- \ ---- \ -------------------------------------------------------------- \ --
 -- | Test | -------------------------------------------------------------- | --
 -- \ ---- \ -------------------------------------------------------------- \ --
 
-function objects.test()
+function objects.test(world)
   local this = {}
-  local super = class.newObject()
+  local super = class.newObject(world)
   setmetatable(this, { __index = super })
 
-  this.groups = { "base" }
+  this.group = groups.base
+  table.insert(groups.base.objects, this.group)
 
   function this:draw(pass)
+    super:draw(pass)
     pass:push()
     pass:transform(this.transform)
     pass:cube(0, 0, 0, 1, 0, 0, 1, 0, "line")
@@ -26,14 +29,15 @@ end
 -- | Test B | ------------------------------------------------------------ | --
 -- \ ------ \ ------------------------------------------------------------ \ --
 
-function objects.testB()
+function objects.testB(world)
   local this = {}
-  local super = class.newObject()
+  local super = class.newObject(world)
   setmetatable(this, { __index = super })
 
-  this.groups = { "two" }
+  this.group = { "two" }
 
   function draw(pass)
+    super:draw(pass)
     pass:push()
     pass:transform(this.transform)
     pass:cube(0, 0, 0, 1, 0, 0, 1, 0, "line")

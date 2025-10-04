@@ -1,17 +1,17 @@
 local class = require("class")
+local groups = require("groups")
 local items = {}
 
--- \ ------ \ ------------------------------------------------------------ \ --
--- | Player | ------------------------------------------------------------ | --
--- \ ------ \ ------------------------------------------------------------ \ --
+-- \ ---- \ -------------------------------------------------------------- \ --
+-- | Base | -------------------------------------------------------------- | --
+-- \ ---- \ -------------------------------------------------------------- \ --
 
-function items.player()
+function items.base(world)
   local this = {}
-  local super = class.newItem()
+  local super = class.newItem(world)
   setmetatable(this, { __index = super })
 
-  this.groups = { "base" }
-  this.enabled = true -- player always starts enabled
+  this.groups = { groups.base }
 
   return this
 end
@@ -20,12 +20,12 @@ end
 -- | Test | -------------------------------------------------------------- | --
 -- \ ---- \ -------------------------------------------------------------- \ --
 
-function items.test()
+function items.two(world)
   local this = {}
-  local super = class.newItem()
+  local super = class.newItem(world)
   setmetatable(this, { __index = super })
 
-  this.groups = { "two" }
+  this.group = { groups.base, groups.two }
 
   return this
 end
