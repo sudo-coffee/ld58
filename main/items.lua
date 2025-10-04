@@ -1,13 +1,13 @@
 local class = require("class")
-local cameras = {}
+local items = {}
 
 -- \ ------ \ ------------------------------------------------------------ \ --
 -- | Player | ------------------------------------------------------------ | --
 -- \ ------ \ ------------------------------------------------------------ \ --
 
-function cameras.player()
+function items.player()
   local this = {}
-  local super = class.newCamera()
+  local super = class.newItem()
   setmetatable(this, { __index = super })
 
   this.groups = { "base" }
@@ -20,9 +20,9 @@ end
 -- | Test | -------------------------------------------------------------- | --
 -- \ ---- \ -------------------------------------------------------------- \ --
 
-function cameras.test()
+function items.test()
   local this = {}
-  local super = class.newCamera()
+  local super = class.newItem()
   setmetatable(this, { __index = super })
 
   this.groups = { "two" }
@@ -34,4 +34,4 @@ end
 -- | --------------------------------------------------------------------- | --
 -- \ --------------------------------------------------------------------- \ --
 
-return cameras
+return items

@@ -1,5 +1,5 @@
 local objects = require("objects")
-local cameras = require("cameras")
+local items = require("items")
 local class = require("class")
 local levels = {}
 
@@ -19,13 +19,13 @@ function levels.main()
   end
 
   do
-    local camera = cameras.player()
-    table.insert(this.cameras, camera)
+    local item = items.player()
+    table.insert(this.items, item)
   end
 
   do
-    local camera = cameras.test()
-    table.insert(this.cameras, camera)
+    local item = items.test()
+    table.insert(this.items, item)
   end
 
   return this

@@ -4,11 +4,11 @@ local class = {}
 -- | Helpers | ----------------------------------------------------------- | --
 -- \ ------- \ ----------------------------------------------------------- \ --
 
-local function doGroupsMatch(camera, object)
+local function doGroupsMatch(item, object)
   local match = false
-  for _, cameraGroup in ipairs(camera.groups) do
+  for _, itemGroup in ipairs(item.groups) do
     for _, objectGroup in ipairs(object.groups) do
-      if objectGroup == cameraGroup then
+      if objectGroup == itemGroup then
         match = true
         break
       end
@@ -18,21 +18,6 @@ local function doGroupsMatch(camera, object)
     end
   end
   return match
-end
-
-function class.renderObjects(pass, objects, cameras)
-  for _, camera in ipairs(camera) do
-    local cameraPass = camera:getPass()
-    camera:startCameraDraw(cameraPass)
-    for _, object in ipairs(objects) do
-      if doGroupsMatch(camera, object) then
-        camera:startObjectDraw(cameraPass)
-        object:draw(cameraPass)
-        camera:endObjectDraw(cameraPass)
-      end
-    end
-    camera:endCameraDraw(cameraPass)
-  end
 end
 
 -- \ ------ \ ------------------------------------------------------------ \ --
@@ -51,21 +36,21 @@ function class.newObject()
   return this
 end
 
--- \ ------ \ ------------------------------------------------------------ \ --
--- | camera | ------------------------------------------------------------ | --
--- \ ------ \ ------------------------------------------------------------ \ --
+-- \ ---- \ -------------------------------------------------------------- \ --
+-- | Item | -------------------------------------------------------------- | --
+-- \ ---- \ -------------------------------------------------------------- \ --
 
-function class.newCamera()
+function class.newItem()
   local this = {}
-
   local textureOptions = { usage = { "render", "transfer" } }
 
   this.transform = lovr.math.newMat4()
+  this.camera = lovr.math.newMat4()
   this.groups = {} -- strings
   this.texture = lovr.graphics.newTexture(800, 800, textureOptions)
   this.enabled = false
+  this.range = 0
   this.shader = nil
-  this.pass = nil
 
   function this:getPass()
     this.texture:clear()
@@ -86,15 +71,15 @@ function class.newLevel()
   local this = {}
 
   this.objects = {}
-  this.cameras = {}
+  this.items = {}
 
   function this:draw(pass)
-    for _, camera in ipairs(this.cameras) do
-      if camera.enabled then
-        local cameraPass = camera:getPass()
+    for _, item in ipairs(this.items) do
+      if item.enabled then
+        local itemPass = item:getPass()
         for _, object in ipairs(this.objects) do
-          if doGroupsMatch(camera, object) then
-            object:draw(cameraPass)
+          if doGroupsMatch(item, object) then
+            object:draw(itemPass)
           end
         end
       end
@@ -106,8 +91,8 @@ function class.newLevel()
     for _, object in ipairs(this.objects) do
       object:update(dt)
     end
-    for _, camera in ipairs(this.cameras) do
-      camera:update(dt)
+    for _, item in ipairs(this.items) do
+      item:update(dt)
     end
   end
 
