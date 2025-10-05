@@ -57,7 +57,6 @@ local ACCELERATION = 20
 local DECELERATION = 0.6
 local TURN_SPEED = 1
 local EYE_HEIGHT = 1.3
-local SELECT_RANGE = 2
 
 -- \ ------ \ ------------------------------------------------------------ \ --
 -- | player | ------------------------------------------------------------ | --
@@ -135,7 +134,6 @@ function class.newItem(world)
 
   this.world = world
   this.collider = this.world:newSphereCollider(0, 0, 0, 0.05)
-  this.trigger = this.world:newSphereCollider()
   this.held = false
   this.active = false
   this.filter = {}
@@ -145,18 +143,13 @@ function class.newItem(world)
   -- Collider setup
   this.collider:setTag("item")
   this.collider:setLinearDamping(2)
-  this.trigger:setTag("trigger")
-  this.trigger:setKinematic(true)
-  this.trigger:setSensor(true)
 
   function this:renderStart(player) end
   function this:renderGroup(group) end
   function this:renderEnd() end
   function this:drawRender(pass) end
 
-  function this:update(dt)
-    this.trigger:setPosition(this.collider:getPosition())
-  end
+  function this:update(dt) end
 
   function this:drawItem(pass)
     pass:push()
@@ -186,7 +179,7 @@ end
 function class.newLevel()
   local this = {}
   local width, height = lovr.system.getWindowDimensions()
-  local worldSettings = { tags = { "player", "item", "trigger" } }
+  local worldSettings = { tags = { "player", "item" } }
 
   this.world = lovr.physics.newWorld(worldSettings)
   this.groups = {}
@@ -300,33 +293,15 @@ function class.newLevel()
     end
   end
 
-  local function updateTriggerRadiuses()
-    for _, item in ipairs(this.items) do
-      local shape = item.trigger:getShape()
-      local cameraPosition = vec3(this.player.camera:getPosition())
-      local itemPosition = vec3(item.collider:getPosition())
-      shape:setRadius(cameraPosition:distance(itemPosition) / 4)
-    end
-  end
-
   local function updateSelectedItem()
-    local cameraPosition = vec3(this.player.camera:getPosition())
-    local vecX = -this.player.camera[9]
-    local vecY = -this.player.camera[10]
-    local vecZ = -this.player.camera[11]
-    local cameraVector = vec3(vecX, vecY, vecZ)
-    local endpoint = cameraPosition + cameraVector * SELECT_RANGE
-    local trigger = this.world:raycast(cameraPosition, endpoint, "trigger")
-    if trigger then
-      for _, item in ipairs(this.items) do
-        if item.trigger == trigger then
-          this.selectedItem = item
-          break
-        end
+    local selectedItem = nil
+    for _, item in ipairs(this.items) do
+      if item.active and not item.held then
+        selectedItem = item
+        break
       end
-    else
-      this.selectedItem = nil
     end
+    this.selectedItem = selectedItem
   end
 
   function this:draw(pass)
@@ -343,7 +318,6 @@ function class.newLevel()
   end
 
   function this:update(dt)
-    updateTriggerRadiuses()
     updateItemActivation()
     updateSelectedItem()
     for _, group in ipairs(this.groups) do
