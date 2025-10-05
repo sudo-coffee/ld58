@@ -9,6 +9,29 @@ local option = 1
 -- | helpers | ----------------------------------------------------------- | --
 -- \ ------- \ ----------------------------------------------------------- \ --
 
+local function drawTitle(pass)
+  pass:plane(0, 0, -5, 1,     1.618, 0, 0, 0, 0, "line")
+  pass:plane(0, 0, -5, 1.618, 1,     0, 0, 0, 0, "line")
+  pass:plane(0, 0, -5, 1.618, 1.618, 0, 0, 0, 0, "line")
+  pass:setColor(.8, .4, .4, .6)
+  pass:torus(0, 0, -5, .35, .02)
+end
+
+local function drawExit(pass)
+  pass:plane(-1.3, 0, -5, 1,     1.618, 0, 0, 0, 0, "line")
+  pass:plane(-1.3, 0, -5, 1.618, 1,     0, 0, 0, 0, "line")
+  pass:plane(-1.3, 0, -5, 1.618, 1.618, 0, 0, 0, 0, "line")
+  pass:plane( 1.3, 0, -5, 1,     1.618, 0, 0, 0, 0, "line")
+  pass:plane( 1.3, 0, -5, 1.618, 1,     0, 0, 0, 0, "line")
+  pass:plane( 1.3, 0, -5, 1.618, 1.618, 0, 0, 0, 0, "line")
+  pass:setColor(.5, .5, .5)
+  pass:plane(-1.3, 0, -5, 0.35,   0.35,   0, 0, 0, 0, "fill")
+  pass:polygon(1.15, 0.2, -5, 1.15, -0.2, -5, 1.45, 0, -5)
+  pass:setColor(.8, .4, .4, .6)
+  pass:plane(-3.9 + option * 2.6, 0, -5, 1.818, 1.818, 0, 0, 0, 0, "line")
+  pass:plane(-3.9 + option * 2.6, 0, -5, 1.828, 1.828, 0, 0, 0, 0, "line")
+end
+
 -- \ --------- \ --------------------------------------------------------- \ --
 -- | callbacks | --------------------------------------------------------- | --
 -- \ --------- \ --------------------------------------------------------- \ --
@@ -28,6 +51,10 @@ end
 function lovr.draw(pass)
   if state == "main" then
     level:draw(pass)
+  elseif state == "title" then
+    drawTitle(pass)
+  elseif state == "exit" then
+    drawExit(pass)
   end
 end
 
