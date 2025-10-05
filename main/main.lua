@@ -17,19 +17,24 @@ local function drawTitle(pass)
   pass:torus(0, 0, -5, .35, .02)
 end
 
-local function drawExit(pass)
-  pass:plane(-1.3, 0, -5, 1,     1.618, 0, 0, 0, 0, "line")
-  pass:plane(-1.3, 0, -5, 1.618, 1,     0, 0, 0, 0, "line")
-  pass:plane(-1.3, 0, -5, 1.618, 1.618, 0, 0, 0, 0, "line")
-  pass:plane( 1.3, 0, -5, 1,     1.618, 0, 0, 0, 0, "line")
-  pass:plane( 1.3, 0, -5, 1.618, 1,     0, 0, 0, 0, "line")
-  pass:plane( 1.3, 0, -5, 1.618, 1.618, 0, 0, 0, 0, "line")
+local function drawMenu(pass)
+  pass:plane(-2.6, 0, -5, 1,     1.618, 0, 0, 0, 0, "line")
+  pass:plane(-2.6, 0, -5, 1.618, 1,     0, 0, 0, 0, "line")
+  pass:plane(-2.6, 0, -5, 1.618, 1.618, 0, 0, 0, 0, "line")
+  pass:plane( 0,   0, -5, 1,     1.618, 0, 0, 0, 0, "line")
+  pass:plane( 0,   0, -5, 1.618, 1,     0, 0, 0, 0, "line")
+  pass:plane( 0,   0, -5, 1.618, 1.618, 0, 0, 0, 0, "line")
+  pass:plane( 2.6, 0, -5, 1,     1.618, 0, 0, 0, 0, "line")
+  pass:plane( 2.6, 0, -5, 1.618, 1,     0, 0, 0, 0, "line")
+  pass:plane( 2.6, 0, -5, 1.618, 1.618, 0, 0, 0, 0, "line")
   pass:setColor(.5, .5, .5)
-  pass:plane(-1.3, 0, -5, 0.35,   0.35,   0, 0, 0, 0, "fill")
-  pass:polygon(1.15, 0.2, -5, 1.15, -0.2, -5, 1.45, 0, -5)
+  pass:polygon(-2.75, 0.2, -5, -2.75, -0.2, -5, -2.45, 0, -5)
+  pass:polygon(-0.05, 0.2, -5, -0.05, -0.2, -5, -0.2, 0, -5)
+  pass:polygon(0.2, 0.2, -5, 0.2, -0.2, -5, 0.05, 0, -5)
+  pass:plane(2.6, 0, -5, 0.35,   0.35,   0, 0, 0, 0, "fill")
   pass:setColor(.8, .4, .4, .6)
-  pass:plane(-3.9 + option * 2.6, 0, -5, 1.818, 1.818, 0, 0, 0, 0, "line")
-  pass:plane(-3.9 + option * 2.6, 0, -5, 1.828, 1.828, 0, 0, 0, 0, "line")
+  pass:plane(-5.2 + option * 2.6, 0, -5, 1.818, 1.818, 0, 0, 0, 0, "line")
+  pass:plane(-5.2 + option * 2.6, 0, -5, 1.828, 1.828, 0, 0, 0, 0, "line")
 end
 
 -- \ --------- \ --------------------------------------------------------- \ --
@@ -53,8 +58,8 @@ function lovr.draw(pass)
     level:draw(pass)
   elseif state == "title" then
     drawTitle(pass)
-  elseif state == "exit" then
-    drawExit(pass)
+  elseif state == "menu" then
+    drawMenu(pass)
   end
 end
 
@@ -70,11 +75,11 @@ function lovr.mousepressed(x, y, button)
   input.mousepressed(x, y, button)
 end
 
-function input.exit()
+function input.menu()
   if state == "main" then
-    state = "exit"
+    state = "menu"
     option = 1
-  elseif state == "exit" then
+  elseif state == "menu" then
     state = "main"
   elseif state == "title" then
     state = "main"
@@ -84,21 +89,25 @@ end
 function input.action()
   if state == "main" then
     level:action()
-  elseif state == "exit" and option == 1 then
-    lovr.event.quit()
-  elseif state == "exit" and option == 2 then
+  elseif state == "menu" and option == 1 then
     state = "main"
+  elseif state == "menu" and option == 2 then
+    level:destroy()
+    level = levels.main()
+    state = "main"
+  elseif state == "menu" and option == 3 then
+    lovr.event.quit()
   elseif state == "title" then
     state = "main"
   end
 end
 
 function input.menuLeft()
-  if option == 2 then option = 1 end
+  if option > 1 then option = option - 1 end
 end
 
 function input.menuRight()
-  if option == 1 then option = 2 end
+  if option < 3 then option = option + 1 end
 end
 
 -- \ --------------------------------------------------------------------- \ --

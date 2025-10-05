@@ -74,7 +74,7 @@ function class.newPlayer(world)
   -- Collider setup
   -- TODO: rotate cylinder so it's always upright
   this.collider:setMass(99999999)
-  this.collider:setGravityScale(.4)
+  -- this.collider:setGravityScale(.4)
   this.collider:setTag("player")
   this.collider:setLinearDamping(LINEAR_DAMPING)
 
@@ -105,6 +105,12 @@ function class.newPlayer(world)
     local position = vec3(posX, posY + EYE_HEIGHT, posZ)
     local orientation = quat(this.camera:getOrientation())
     this.camera:set(position, orientation)
+  
+    -- Wrap to top of world, adjust gravity
+    this.collider:setGravityScale(math.abs(posY) / 64 + 1)
+    if posY < -256 then
+      this.collider:setPosition(posX, posY + 512, posZ)
+    end
   end
 
   return this
@@ -135,7 +141,7 @@ function class.newItem(world)
   local this = {}
 
   this.world = world
-  this.collider = this.world:newSphereCollider(0, 0, 0, 0.05)
+  this.collider = this.world:newSphereCollider(0, 0, 0, 0.2)
   this.held = false
   this.active = false
   this.filter = {}
@@ -145,13 +151,20 @@ function class.newItem(world)
   -- Collider setup
   this.collider:setTag("item")
   this.collider:setLinearDamping(LINEAR_DAMPING)
+  this.collider:setMass(0.4)
 
   function this:renderStart(player) end
   function this:renderGroup(group) end
   function this:renderEnd() end
   function this:drawRender(pass) end
 
-  function this:update(dt) end
+  function this:update(dt)
+    local posX, posY, posZ = this.collider:getPosition()
+    this.collider:setGravityScale(math.abs(posY) / 64 + 1)
+    if posY < -256 then
+      this.collider:setPosition(posX, posY + 512, posZ)
+    end
+  end
 
   function this:drawItem(pass)
     pass:push()
@@ -190,7 +203,6 @@ function class.newLevel()
   this.texture = lovr.graphics.newTexture(width, height, textureOptions)
   this.pass = lovr.graphics.newPass(this.texture)
   
-
   -- World setup
   this.world:disableCollisionBetween("player", "item")
 
@@ -364,6 +376,10 @@ function class.newLevel()
         item.collider:applyLinearImpulse(impulse)
       end
     end
+  end
+
+  function this:destroy()
+    this.world:destroy()
   end
 
   return this

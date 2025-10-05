@@ -24,7 +24,7 @@ local padStart = false
 -- \ --------- \ --------------------------------------------------------- \ --
 
 function input.action() end
-function input.exit() end
+function input.menu() end
 function input.menuLeft() end
 function input.menuRight() end
 
@@ -98,7 +98,7 @@ function input.update(dt)
   end
   if not padStart and buttons[GAMEPAD_BUTTON_START] == 1 then
     padStart = true
-    input.exit()
+    input.menu()
   elseif padStart and buttons[GAMEPAD_BUTTON_START] == 0 then
     padStart = false
   end
@@ -115,7 +115,7 @@ end
 
 function input.keypressed(key, scancode, repeated)
   if key == "space" then input.action() end
-  if key == "escape" then input.exit() end
+  if key == "escape" then input.menu() end
   if key == "return" then input.action() end
   if key == "a" then input.menuLeft() end
   if key == "left" then input.menuLeft() end
