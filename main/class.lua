@@ -1,6 +1,14 @@
 local input = require("input")
 local class = {}
 
+local theend = false
+
+-- global
+local source = lovr.audio.newSource("assets/wind.mp3")
+source:play()
+source:setVolume(0)
+source:setLooping(true)
+
 -- \ ------- \ ----------------------------------------------------------- \ --
 -- | private | ----------------------------------------------------------- | --
 -- \ ------- \ ----------------------------------------------------------- \ --
@@ -45,6 +53,10 @@ local function printPlayerInfo(player)
 end
 
 -- \ ------- \ ----------------------------------------------------------- \ --
+-- | private | ----------------------------------------------------------- | --
+-- \ ------- \ ----------------------------------------------------------- \ --
+
+-- \ ------- \ ----------------------------------------------------------- \ --
 -- | helpers | ----------------------------------------------------------- | --
 -- \ ------- \ ----------------------------------------------------------- \ --
 
@@ -52,7 +64,7 @@ end
 -- | const | ------------------------------------------------------------- | --
 -- \ ----- \ ------------------------------------------------------------- \ --
 
-local MAX_VELOCITY = 1.8
+local MAX_VELOCITY = 4
 local ACCELERATION = 20
 local DECELERATION = 0.6
 local TURN_SPEED = 1
@@ -74,7 +86,6 @@ function class.newPlayer(world)
   -- Collider setup
   -- TODO: rotate cylinder so it's always upright
   this.collider:setMass(99999999)
-  -- this.collider:setGravityScale(.4)
   this.collider:setTag("player")
   this.collider:setLinearDamping(LINEAR_DAMPING)
 
@@ -107,11 +118,17 @@ function class.newPlayer(world)
     this.camera:set(position, orientation)
   
     -- Wrap to top of world, adjust gravity
-    local scale = math.abs(posY - math.max(posY, 0) / 1.1) / 4 + 1
-    this.collider:setGravityScale(scale)
-    if posY < -1024 then
-      this.collider:setPosition(posX, posY + 2048, posZ)
+    if posY < -4096 and not theend then
+      this.collider:setPosition(posX, posY + 4128, posZ)
+      this.collider:setLinearVelocity(0, 0, 0)
+      this.collider:setGravityScale(0.4)
+    elseif posY < 0 then
+      this.collider:setGravityScale(math.abs(posY) + 1)
     end
+    
+    -- Set sound effect volume
+    velX, velY, velZ = this.collider:getLinearVelocity()
+    source:setVolume(math.max(math.min(-velY / 128, 0.8), 0))
   end
 
   return this
@@ -148,6 +165,7 @@ function class.newItem(world)
   this.filter = {}
   this.color = { 1, 1, 1, 1 }
   this.range = 2
+  this.theend = false
 
   -- Collider setup
   this.collider:setTag("item")
@@ -161,10 +179,12 @@ function class.newItem(world)
 
   function this:update(dt)
     local posX, posY, posZ = this.collider:getPosition()
-    local scale = math.abs(posY - math.max(posY, 0) / 1.1) / 4 + 1
-    this.collider:setGravityScale(scale)
-    if posY < -1024 then
-      this.collider:setPosition(posX, posY + 2048, posZ)
+    if posY < -4096 and not theend then
+      this.collider:setPosition(posX, posY + 4128, posZ)
+      this.collider:setLinearVelocity(0, 0, 0)
+      this.collider:setGravityScale(0.4)
+    elseif posY < 0 then
+      this.collider:setGravityScale(math.abs(posY) + 1)
     end
   end
 
@@ -173,13 +193,13 @@ function class.newItem(world)
     pass:setColor(this.color)
     pass:translate(this.collider:getPosition())
     pass:rotate(this.collider:getOrientation())
-    pass:cube(0, 0, 0, 0.025)
+    pass:cube(0, 0, 0, 0.1)
     pass:pop()
   end
 
   function this:drawBubble(pass)
     pass:push()
-    pass:setColor(this.color[1], this.color[2], this.color[3], 0.1)
+    pass:setColor(this.color[1], this.color[2], this.color[3], 0.4)
     pass:translate(this.collider:getPosition())
     pass:rotate(this.collider:getOrientation())
     pass:sphere(0, 0, 0, this.range)
@@ -196,7 +216,11 @@ end
 function class.newLevel()
   local this = {}
   local width, height = lovr.system.getWindowDimensions()
-  local worldSettings = { tags = { "player", "item" } }
+  local worldSettings = {
+    tags = { "player", "item", "group" },
+    velocitySteps = 32,
+    positionSteps = 16
+  }
 
   this.world = lovr.physics.newWorld(worldSettings)
   this.groups = {}
@@ -204,6 +228,7 @@ function class.newLevel()
   this.player = class.newPlayer(this.world)
   this.texture = lovr.graphics.newTexture(width, height, textureOptions)
   this.pass = lovr.graphics.newPass(this.texture)
+  this.theend = false
   
   -- World setup
   this.world:disableCollisionBetween("player", "item")
@@ -290,7 +315,7 @@ function class.newLevel()
       if item.active and not item.held then
         local cameraPosition = vec3(this.player.camera:getPosition())
         local position = vec3(item.collider:getPosition())
-        local radius = cameraPosition:distance(position) ^ .2 / 6
+        local radius = cameraPosition:distance(position) ^ .2 / 4
         local scale = vec3(radius, radius, radius / 16)
         local orientation = quat(this.player.camera:getOrientation())
         pass:torus(position, scale, orientation)
@@ -304,7 +329,9 @@ function class.newLevel()
       if not item.held then
         local cameraPosition = vec3(this.player.camera:getPosition())
         local itemPosition = vec3(item.collider:getPosition())
-        if cameraPosition:distance(itemPosition) < item.range then
+        if this.theend then
+          item.active = false
+        elseif cameraPosition:distance(itemPosition) < item.range then
           item.active = true
         else
           item.active = false
@@ -356,6 +383,18 @@ function class.newLevel()
       closestItem.held = true
       closestItem.active = true
       closestItem.collider:setKinematic(true)
+      if closestItem.theend then
+        this.theend = true
+        theend = true
+        this.world:disableCollisionBetween("player", "group")
+        this.world:disableCollisionBetween("item", "group")
+        lovr.graphics.setBackgroundColor(.1, .1, .2)
+        for _, item in ipairs(this.items) do
+          if not item.theend and item.held then
+            item.active = false
+          end
+        end
+      end
     else
       local randomItem = {}
       for _, item in ipairs(this.items) do
@@ -372,10 +411,21 @@ function class.newLevel()
         local forward = vec3(forwardX, forwardY, forwardZ)
         local impulse = vec3(forwardX, forwardY + 0.4, forwardZ) * 4
         item.held = false
-        item.active = true
         item.collider:setKinematic(false)
         item.collider:setPosition(cameraPosition + forward / 4)
         item.collider:applyLinearImpulse(impulse)
+        if item.theend then
+          this.theend = false
+          theend = false
+          this.world:enableCollisionBetween("player", "group")
+          this.world:enableCollisionBetween("item", "group")
+          lovr.graphics.setBackgroundColor(.5, .5, .6)
+          for _, item in ipairs(this.items) do
+            if not item.theend and item.held then
+              item.active = true
+            end
+          end
+        end
       end
     end
   end

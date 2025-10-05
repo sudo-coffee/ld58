@@ -44,6 +44,7 @@ end
 function lovr.load()
   input.load()
   level = levels.main()
+  lovr.graphics.setBackgroundColor(.1, .1, .2)
 end
 
 function lovr.update(dt)
@@ -77,11 +78,19 @@ end
 
 function input.menu()
   if state == "main" then
+    lovr.graphics.setBackgroundColor(.1, .1, .2)
+    source:setVolume(0)
     state = "menu"
     option = 1
   elseif state == "menu" then
+    if not level.theend then
+      lovr.graphics.setBackgroundColor(.5, .5, .6)
+    end
     state = "main"
   elseif state == "title" then
+    if not level.theend then
+      lovr.graphics.setBackgroundColor(.5, .5, .6)
+    end
     state = "main"
   end
 end
@@ -90,14 +99,23 @@ function input.action()
   if state == "main" then
     level:action()
   elseif state == "menu" and option == 1 then
+    if not level.theend then
+      lovr.graphics.setBackgroundColor(.5, .5, .6)
+    end
     state = "main"
   elseif state == "menu" and option == 2 then
     level:destroy()
     level = levels.main()
+    if not level.theend then
+      lovr.graphics.setBackgroundColor(.5, .5, .6)
+    end
     state = "main"
   elseif state == "menu" and option == 3 then
     lovr.event.quit()
   elseif state == "title" then
+    if not level.theend then
+      lovr.graphics.setBackgroundColor(.5, .5, .6)
+    end
     state = "main"
   end
 end
