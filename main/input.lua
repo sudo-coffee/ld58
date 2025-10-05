@@ -31,7 +31,7 @@ function input.update(dt)
 end
 
 function input.mousemoved(x, y, dx, dy)
-  if movesSinceWindowFocused >= 2 then
+  if movesSinceWindowFocused >= 3 then
     turnVec.x = dy / 256
     turnVec.y = dx / 256
     turnVec.z = 0

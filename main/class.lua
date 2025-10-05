@@ -177,12 +177,13 @@ end
 
 function class.newLevel()
   local this = {}
+  local width, height = lovr.system.getWindowDimensions()
 
   this.world = lovr.physics.newWorld({ tags = { "player", "item" } })
   this.groups = {}
   this.items = {}
   this.player = class.newPlayer(this.world)
-  this.texture = lovr.graphics.newTexture(800, 800, textureOptions)
+  this.texture = lovr.graphics.newTexture(width, height, textureOptions)
   this.pass = lovr.graphics.newPass(this.texture)
 
   -- World setup
@@ -191,7 +192,7 @@ function class.newLevel()
   -- not tested, should occlude items and bubbles
   local function drawGroups(pass)
     pass:push()
-    -- pass:setColorWrite(false) -- Just depth tests
+    pass:setColorWrite(false) -- Just depth tests
     local groupSet = {}
     for _, item in ipairs(this.items) do
       if item.active then
@@ -207,6 +208,7 @@ function class.newLevel()
     for group, _ in pairs(groupSet) do
       group:draw(pass)
     end
+    pass:setColorWrite(true)
     pass:pop()
   end
 
