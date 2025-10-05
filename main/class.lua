@@ -11,8 +11,8 @@ local function playerTurn(transform, vecX, vecY)
   local orientation = lovr.math.quat(transform:getOrientation())
   local radX, radY, radZ = orientation:getEuler()
   local degX, degY, degZ = math.deg(radX), math.deg(radY), math.deg(radZ)
-  degX = degX + math.deg(vecX)
-  degY = degY + math.deg(vecY)
+  degX = degX - math.deg(vecX)
+  degY = degY - math.deg(vecY)
   degZ = 0
   if degX >   89 then degX =         89 end
   if degX <  -89 then degX =        -89 end
@@ -26,10 +26,9 @@ end
 -- In meters
 local function getPlayerDelta(transform, vecX, vecZ)
   local position = lovr.math.vec3(transform:getPosition())
-  local back = lovr.math.vec3(-transform[9], 0, transform[11]):normalize()
-  local right = lovr.math.vec3(transform[1], 0, -transform[3]):normalize()
+  local back = lovr.math.vec3(transform[9], 0, transform[11]):normalize()
+  local right = lovr.math.vec3(transform[1], 0, transform[3]):normalize()
   local delta = right * vecX + back * vecZ
-  print(delta)
   return delta.x, delta.y, delta.z
 end
 
@@ -48,15 +47,6 @@ end
 -- \ ------- \ ----------------------------------------------------------- \ --
 -- | helpers | ----------------------------------------------------------- | --
 -- \ ------- \ ----------------------------------------------------------- \ --
-
-function class.transformPass(pass, transform)
-  local orientation = lovr.math.quat(transform:getOrientation())
-  local radX, radY, radZ = orientation:getEuler()
-  pass:rotate(radX, 1, 0, 0)
-  pass:rotate(radY, 0, 1, 0)
-  pass:rotate(radZ, 0, 0, 1)
-  pass:translate(lovr.math.vec3(transform:getPosition()):mul(-1))
-end
 
 -- \ ----- \ ------------------------------------------------------------- \ --
 -- | const | ------------------------------------------------------------- | --
@@ -81,8 +71,10 @@ function class.newPlayer(world)
   this.velocity = lovr.math.newVec3()
 
   -- Collider setup
+  -- TODO: rotate cylinder so it's always upright
   this.collider:setMass(99999999)
   this.collider:setGravityScale(.4)
+  this.collider:setTag("player")
 
   function this:update(dt)
     -- Input vectors
@@ -102,8 +94,9 @@ function class.newPlayer(world)
     newH:div(math.max(1, newH:length() / MAX_VELOCITY))
 
     -- Update Collider
-    this.collider:setLinearVelocity(newH.x, oldY, newH.y)
+    -- TODO: rotate cylinder so it's always upright
     this.collider:setOrientation()
+    this.collider:setLinearVelocity(newH.x, oldY, newH.y)
 
     -- Update camera position
     local posX, posY, posZ = this.collider:getPosition()
@@ -140,18 +133,40 @@ function class.newItem(world)
   local this = {}
 
   this.world = world
-  this.collider = this.world:newSphereCollider(0, 0, 0, 0.05)
+  this.collider = this.world:newSphereCollider(0, 1, 0, 0.05)
   this.held = false
   this.active = false
   this.filter = {}
+  this.color = { 1, 1, 1, 1 }
+  this.range = 2
+
+  -- Collider setup
+  this.collider:setTag("item")
+  this.collider:setLinearDamping(2)
 
   function this:update(dt) end
   function this:renderStart(player) end
   function this:renderGroup(group) end
   function this:renderEnd() end
   function this:drawRender(pass) end
-  function this:drawItem(pass) end
-  function this:drawBubble(pass) end
+
+  function this:drawItem(pass)
+    pass:push()
+    pass:setColor(this.color)
+    pass:translate(this.collider:getPosition())
+    pass:rotate(this.collider:getOrientation())
+    pass:cube(0, 0, 0, 0.025)
+    pass:pop()
+  end
+
+  function this:drawBubble(pass)
+    pass:push()
+    pass:setColor(this.color[1], this.color[2], this.color[3], 0.1)
+    pass:translate(this.collider:getPosition())
+    pass:rotate(this.collider:getOrientation())
+    pass:sphere(0, 0, 0, this.range)
+    pass:pop()
+  end
 
   return this
 end
@@ -163,10 +178,37 @@ end
 function class.newLevel()
   local this = {}
 
-  this.world = lovr.physics.newWorld()
+  this.world = lovr.physics.newWorld({ tags = { "player", "item" } })
   this.groups = {}
   this.items = {}
   this.player = class.newPlayer(this.world)
+  this.texture = lovr.graphics.newTexture(800, 800, textureOptions)
+  this.pass = lovr.graphics.newPass(this.texture)
+
+  -- World setup
+  this.world:disableCollisionBetween("player", "item")
+
+  -- not tested, should occlude items and bubbles
+  local function drawGroups(pass)
+    pass:push()
+    -- pass:setColorWrite(false) -- Just depth tests
+    local groupSet = {}
+    for _, item in ipairs(this.items) do
+      if item.active then
+        for _, group in ipairs(this.groups) do
+          for _, name in ipairs(item.filter) do
+            if group.name == name then
+              groupSet[group] = true
+            end
+          end
+        end
+      end
+    end
+    for group, _ in pairs(groupSet) do
+      group:draw(pass)
+    end
+    pass:pop()
+  end
 
   local function renderGroups()
     for _, item in ipairs(this.items) do
@@ -220,16 +262,29 @@ function class.newLevel()
   end
 
   function this:draw(pass)
-    pass:push()
-    class.transformPass(pass, this.player.camera)
+    this.pass:reset()
+    this.pass:setViewPose(1, this.player.camera:getPose())
+    drawGroups(this.pass)
     renderGroups()
+    drawItems(this.pass)
+    drawBubbles(this.pass)
+    lovr.graphics.submit(this.pass)
     drawRenders(pass)
-    drawItems(pass)
-    drawBubbles(pass)
-    pass:pop()
+    pass:fill(this.texture)
   end
 
   function this:update(dt)
+    -- Set item activation
+    for _, item in ipairs(this.items) do
+      local cameraPosition = lovr.math.vec3(this.player.camera:getPosition())
+      local itemPosition = lovr.math.vec3(item.collider:getPosition())
+      if cameraPosition:distance(itemPosition) < item.range then
+        item.active = true
+      else
+        item.active = false
+      end
+    end
+    -- Run update methods
     for _, group in ipairs(this.groups) do
       group:update(dt)
     end
@@ -238,7 +293,6 @@ function class.newLevel()
     end
     this.player:update(dt)
     this.world:update(dt)
-    printPlayerInfo(this.player)
   end
 
   return this
