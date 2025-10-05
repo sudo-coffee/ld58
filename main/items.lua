@@ -6,7 +6,7 @@ local items = {}
 -- \ ---- \ -------------------------------------------------------------- \ --
 
 function items.base(world)
-  local this = class.newItem(world)
+  local this = {}
   local super = class.newItem(world)
   setmetatable(this, { __index = super })
   local textureOptions = { usage = { "render", "sample" } }
@@ -18,15 +18,18 @@ function items.base(world)
   this.pass = lovr.graphics.newPass(this.texture)
 
   function this:renderStart(player)
+    super:renderStart(player)
     this.pass:reset()
     this.pass:setViewPose(1, player.camera:getPose())
   end
 
   function this:renderGroup(group)
+    super:renderGroup(group)
     group:draw(this.pass)
   end
 
   function this:drawRender(pass)
+    super:drawRender(pass)
     pass:push()
     pass:origin()
     lovr.graphics.submit(this.pass)

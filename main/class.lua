@@ -7,8 +7,8 @@ local class = {}
 
 -- In radians
 local function playerTurn(transform, vecX, vecY)
-  local position = lovr.math.vec3(transform:getPosition())
-  local orientation = lovr.math.quat(transform:getOrientation())
+  local position = vec3(transform:getPosition())
+  local orientation = quat(transform:getOrientation())
   local radX, radY, radZ = orientation:getEuler()
   local degX, degY, degZ = math.deg(radX), math.deg(radY), math.deg(radZ)
   degX = degX - math.deg(vecX)
@@ -25,9 +25,9 @@ end
 
 -- In meters
 local function getPlayerDelta(transform, vecX, vecZ)
-  local position = lovr.math.vec3(transform:getPosition())
-  local back = lovr.math.vec3(transform[9], 0, transform[11]):normalize()
-  local right = lovr.math.vec3(transform[1], 0, transform[3]):normalize()
+  local position = vec3(transform:getPosition())
+  local back = vec3(transform[9], 0, transform[11]):normalize()
+  local right = vec3(transform[1], 0, transform[3]):normalize()
   local delta = right * vecX + back * vecZ
   return delta.x, delta.y, delta.z
 end
@@ -35,7 +35,7 @@ end
 local function printPlayerInfo(player)
   local colX, colY, colZ = player.collider:getPosition()
   local camX, camY, camZ = player.camera:getPosition()
-  local orientation = lovr.math.quat(player.camera:getOrientation())
+  local orientation = quat(player.camera:getOrientation())
   local radX, radY, radZ = orientation:getEuler()
   local degX, degY, degZ = math.deg(radX), math.deg(radY), math.deg(radZ)
   print()
@@ -57,6 +57,7 @@ local ACCELERATION = 20
 local DECELERATION = 0.6
 local TURN_SPEED = 1
 local EYE_HEIGHT = 1.3
+local SELECT_RANGE = 2
 
 -- \ ------ \ ------------------------------------------------------------ \ --
 -- | player | ------------------------------------------------------------ | --
@@ -86,9 +87,9 @@ function class.newPlayer(world)
 
     -- Update velocity
     local deltaX, _, deltaZ = getPlayerDelta(this.camera, moveX, moveZ)
-    local deltaH = lovr.math.vec2(deltaX, deltaZ)
+    local deltaH = vec2(deltaX, deltaZ)
     local oldX, oldY, oldZ = this.collider:getLinearVelocity()
-    local newH = lovr.math.vec2(oldX, oldZ)
+    local newH = vec2(oldX, oldZ)
     if deltaH:length() == 0 then newH:div(DECELERATION + 1) end
     newH:add(deltaH * dt * ACCELERATION)
     newH:div(math.max(1, newH:length() / MAX_VELOCITY))
@@ -100,8 +101,8 @@ function class.newPlayer(world)
 
     -- Update camera position
     local posX, posY, posZ = this.collider:getPosition()
-    local position = lovr.math.vec3(posX, posY + EYE_HEIGHT, posZ)
-    local orientation = lovr.math.quat(this.camera:getOrientation())
+    local position = vec3(posX, posY + EYE_HEIGHT, posZ)
+    local orientation = quat(this.camera:getOrientation())
     this.camera:set(position, orientation)
   end
 
@@ -133,7 +134,8 @@ function class.newItem(world)
   local this = {}
 
   this.world = world
-  this.collider = this.world:newSphereCollider(0, 1, 0, 0.05)
+  this.collider = this.world:newSphereCollider(0, 0, 0, 0.05)
+  this.trigger = this.world:newSphereCollider()
   this.held = false
   this.active = false
   this.filter = {}
@@ -143,12 +145,18 @@ function class.newItem(world)
   -- Collider setup
   this.collider:setTag("item")
   this.collider:setLinearDamping(2)
+  this.trigger:setTag("trigger")
+  this.trigger:setKinematic(true)
+  this.trigger:setSensor(true)
 
-  function this:update(dt) end
   function this:renderStart(player) end
   function this:renderGroup(group) end
   function this:renderEnd() end
   function this:drawRender(pass) end
+
+  function this:update(dt)
+    this.trigger:setPosition(this.collider:getPosition())
+  end
 
   function this:drawItem(pass)
     pass:push()
@@ -178,13 +186,15 @@ end
 function class.newLevel()
   local this = {}
   local width, height = lovr.system.getWindowDimensions()
+  local worldSettings = { tags = { "player", "item", "trigger" } }
 
-  this.world = lovr.physics.newWorld({ tags = { "player", "item" } })
+  this.world = lovr.physics.newWorld(worldSettings)
   this.groups = {}
   this.items = {}
   this.player = class.newPlayer(this.world)
   this.texture = lovr.graphics.newTexture(width, height, textureOptions)
   this.pass = lovr.graphics.newPass(this.texture)
+  this.selectedItem = nil
 
   -- World setup
   this.world:disableCollisionBetween("player", "item")
@@ -252,7 +262,7 @@ function class.newLevel()
         table.insert(sorted, item)
       end
     end
-    local playerPos = lovr.math.vec3(this.player.collider:getPosition())
+    local playerPos = vec3(this.player.collider:getPosition())
     table.sort(sorted, function(a, b)
       local aDist = playerPos:distance(a.collider:getPosition())
       local bDist = playerPos:distance(b.collider:getPosition())
@@ -263,6 +273,62 @@ function class.newLevel()
     end
   end
 
+  local function drawSelector(pass)
+    if this.selectedItem then
+      pass:push()
+      pass:setColor(.8, .4, .4, .6)
+      pass:setDepthTest("none")
+      local cameraPosition = vec3(this.player.camera:getPosition())
+      local position = vec3(this.selectedItem.collider:getPosition())
+      local radius = cameraPosition:distance(position) ^ .2 / 6
+      local scale = vec3(radius, radius, radius / 16)
+      local orientation = quat(this.player.camera:getOrientation())
+      pass:torus(position, scale, orientation)
+      pass:pop()
+    end
+  end
+
+  local function updateItemActivation()
+    for _, item in ipairs(this.items) do
+      local cameraPosition = vec3(this.player.camera:getPosition())
+      local itemPosition = vec3(item.collider:getPosition())
+      if cameraPosition:distance(itemPosition) < item.range then
+        item.active = true
+      else
+        item.active = false
+      end
+    end
+  end
+
+  local function updateTriggerRadiuses()
+    for _, item in ipairs(this.items) do
+      local shape = item.trigger:getShape()
+      local cameraPosition = vec3(this.player.camera:getPosition())
+      local itemPosition = vec3(item.collider:getPosition())
+      shape:setRadius(cameraPosition:distance(itemPosition) / 4)
+    end
+  end
+
+  local function updateSelectedItem()
+    local cameraPosition = vec3(this.player.camera:getPosition())
+    local vecX = -this.player.camera[9]
+    local vecY = -this.player.camera[10]
+    local vecZ = -this.player.camera[11]
+    local cameraVector = vec3(vecX, vecY, vecZ)
+    local endpoint = cameraPosition + cameraVector * SELECT_RANGE
+    local trigger = this.world:raycast(cameraPosition, endpoint, "trigger")
+    if trigger then
+      for _, item in ipairs(this.items) do
+        if item.trigger == trigger then
+          this.selectedItem = item
+          break
+        end
+      end
+    else
+      this.selectedItem = nil
+    end
+  end
+
   function this:draw(pass)
     this.pass:reset()
     this.pass:setViewPose(1, this.player.camera:getPose())
@@ -270,23 +336,16 @@ function class.newLevel()
     renderGroups()
     drawItems(this.pass)
     drawBubbles(this.pass)
+    drawSelector(this.pass)
     lovr.graphics.submit(this.pass)
     drawRenders(pass)
     pass:fill(this.texture)
   end
 
   function this:update(dt)
-    -- Set item activation
-    for _, item in ipairs(this.items) do
-      local cameraPosition = lovr.math.vec3(this.player.camera:getPosition())
-      local itemPosition = lovr.math.vec3(item.collider:getPosition())
-      if cameraPosition:distance(itemPosition) < item.range then
-        item.active = true
-      else
-        item.active = false
-      end
-    end
-    -- Run update methods
+    updateTriggerRadiuses()
+    updateItemActivation()
+    updateSelectedItem()
     for _, group in ipairs(this.groups) do
       group:update(dt)
     end

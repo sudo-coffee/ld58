@@ -68,7 +68,6 @@ function input.getMoveVector()
   if lovr.system.isKeyDown("w", "up") then keyVec.y = keyVec.y - 1 end
   padVec.x = gamepad.axes[GAMEPAD_AXIS_LEFT_X]
   padVec.y = gamepad.axes[GAMEPAD_AXIS_LEFT_Y]
-  print(padVec:length())
   if padVec:length() > 0.1 then
     moveVec = padVec
   else
