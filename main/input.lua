@@ -6,7 +6,8 @@ local input = {}
 -- \ ------- \ ----------------------------------------------------------- \ --
 
 local turnVec = lovr.math.newVec3()
-local mouseMoved = 0
+local steps = 0
+local movesSinceWindowFocused = 0
 
 -- \ --------- \ --------------------------------------------------------- \ --
 -- | callbacks | --------------------------------------------------------- | --
@@ -14,11 +15,15 @@ local mouseMoved = 0
 
 function input.load()
   mouse.setRelativeMode(true) -- Toggle this for menus
+  mouse.setPosition(0, 0)
 end
 
 function input.update(dt)
-  mouseMoved = mouseMoved - 1
-  if mouseMoved == 0 then
+  if not lovr.system.isWindowFocused() then
+    movesSinceWindowFocused = 0
+  end
+  steps = steps - 1
+  if steps == 0 then
     turnVec.x = 0
     turnVec.y = 0
     turnVec.z = 0
@@ -26,10 +31,13 @@ function input.update(dt)
 end
 
 function input.mousemoved(x, y, dx, dy)
-  turnVec.x = dy / 256
-  turnVec.y = dx / 256
-  turnVec.z = 0
-  mouseMoved = 2
+  if movesSinceWindowFocused >= 2 then
+    turnVec.x = dy / 256
+    turnVec.y = dx / 256
+    turnVec.z = 0
+    steps = 2
+  end
+  movesSinceWindowFocused = movesSinceWindowFocused + 1
 end
 
 -- \ ------ \ ------------------------------------------------------------ \ --
