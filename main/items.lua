@@ -12,10 +12,10 @@ function items.base(world)
   local textureOptions = { usage = { "render", "sample" } }
   local width, height = lovr.system.getWindowDimensions()
 
-  this.active = true -- for testing
   this.filter = { "room" }
   this.texture = lovr.graphics.newTexture(width, height, textureOptions)
   this.pass = lovr.graphics.newPass(this.texture)
+  this.collider:setPosition(2, 2, -6)
 
   function this:renderStart(player)
     super:renderStart(player)

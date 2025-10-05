@@ -11,17 +11,16 @@ function groups.room(world)
   setmetatable(this, { __index = super })
 
   this.name = "room"
-
+  this.model = lovr.graphics.newModel("assets/room.gltf")
+  
   do
-    local collider = this.world:newBoxCollider(0, -0.5, 0, 10, 1, 10)
-    collider:setKinematic(true)
+    local collider = this.world:newMeshCollider(this.model)
     table.insert(this.colliders, collider)
   end
 
   function this:draw(pass)
     super:draw(pass)
-    pass:box(0, -0.5, 0, 10, 1, 10, 0, 0, 1, 0, "line")
-    pass:cube(0, 0, -5, 2, 0, 0, 1, 0, "line") -- test
+    pass:draw(this.model)
   end
 
   return this

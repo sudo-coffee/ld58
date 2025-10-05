@@ -12,15 +12,13 @@ function levels.main()
   local super = class.newLevel()
   setmetatable(this, { __index = super })
 
-  do
-    local group = groups.room(this.world)
-    table.insert(this.groups, group)
-  end
+  this.player.collider:setPosition(0, 2, 0)
 
-  do
-    local item = items.base(this.world)
-    table.insert(this.items, item)
-  end
+  -- groups
+  table.insert(this.groups, groups.room(this.world))
+
+  -- items
+  table.insert(this.items, items.base(this.world))
 
   return this
 end
