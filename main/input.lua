@@ -9,14 +9,23 @@ local input = {}
 local mouseVec = lovr.math.newVec2()
 local steps = 0
 local movesSinceWindowFocused = 0
+local lastGamepad = nil
 
 -- \ --------- \ --------------------------------------------------------- \ --
 -- | callbacks | --------------------------------------------------------- | --
 -- \ --------- \ --------------------------------------------------------- \ --
 
+function input.action() end
+function input.exit() end
+
+-- \ ------ \ ------------------------------------------------------------ \ --
+-- | public | ------------------------------------------------------------ | --
+-- \ ------ \ ------------------------------------------------------------ \ --
+
 function input.load()
   mouse.setRelativeMode(true) -- Toggle this for menus
   mouse.setPosition(0, 0)
+  lastGamepad = gc.getGamepadState(1)
 end
 
 function input.update(dt)
@@ -28,6 +37,18 @@ function input.update(dt)
     mouseVec.x = 0
     mouseVec.y = 0
   end
+  local buttons = gc.getGamepadState(1).buttons
+  local last = lastGamepad.buttons
+  gamepad = gc.getGamepadState(1)
+  local a = buttons[GAMEPAD_BUTTON_A] and not last[GAMEPAD_BUTTON_A]
+  local b = buttons[GAMEPAD_BUTTON_A] and not last[GAMEPAD_BUTTON_A]
+  local x = buttons[GAMEPAD_BUTTON_A] and not last[GAMEPAD_BUTTON_A]
+  local y = buttons[GAMEPAD_BUTTON_A] and not last[GAMEPAD_BUTTON_A]
+  local st = buttons[GAMEPAD_BUTTON_START] and not last[GAMEPAD_BUTTON_START]
+  local ba = buttons[GAMEPAD_BUTTON_BACK] and not last[GAMEPAD_BUTTON_BACK]
+  if a or b or x or y then input.action() end
+  if st or ba then input.exit() end
+  lastGamepad = gc.getGamepadState(1)
 end
 
 function input.mousemoved(x, y, dx, dy)
@@ -39,9 +60,10 @@ function input.mousemoved(x, y, dx, dy)
   movesSinceWindowFocused = movesSinceWindowFocused + 1
 end
 
--- \ ------ \ ------------------------------------------------------------ \ --
--- | public | ------------------------------------------------------------ | --
--- \ ------ \ ------------------------------------------------------------ \ --
+function input.keypressed(key, scancode, repeated)
+  if key == "space" then input.action() end
+  if key == "escape" then input.exit() end
+end
 
 function input.getTurnVector()
   local gamepad = gc.getGamepadState(1)

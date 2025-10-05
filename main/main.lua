@@ -25,14 +25,21 @@ function lovr.draw(pass)
   level:draw(pass)
 end
 
-function lovr.keypressed(key)
-  if key == "escape" then
-    lovr.event.quit()
-  end
+function lovr.keypressed(key, scancode, repeated)
+  input.keypressed(key, scancode, repeated)
 end
 
 function lovr.mousemoved(x, y, dx, dy)
   input.mousemoved(x, y, dx, dy)
+end
+
+function input.exit()
+  -- TODO: add confirmation here
+  lovr.event.quit()
+end
+
+function input.action()
+  level:action()
 end
 
 -- \ --------------------------------------------------------------------- \ --

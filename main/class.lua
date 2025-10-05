@@ -52,11 +52,12 @@ end
 -- | const | ------------------------------------------------------------- | --
 -- \ ----- \ ------------------------------------------------------------- \ --
 
-local MAX_VELOCITY = 1.6
+local MAX_VELOCITY = 1.8
 local ACCELERATION = 20
 local DECELERATION = 0.6
 local TURN_SPEED = 1
 local EYE_HEIGHT = 1.3
+local LINEAR_DAMPING = 1
 
 -- \ ------ \ ------------------------------------------------------------ \ --
 -- | player | ------------------------------------------------------------ | --
@@ -75,6 +76,7 @@ function class.newPlayer(world)
   this.collider:setMass(99999999)
   this.collider:setGravityScale(.4)
   this.collider:setTag("player")
+  this.collider:setLinearDamping(LINEAR_DAMPING)
 
   function this:update(dt)
     -- Input vectors
@@ -142,7 +144,7 @@ function class.newItem(world)
 
   -- Collider setup
   this.collider:setTag("item")
-  this.collider:setLinearDamping(2)
+  this.collider:setLinearDamping(LINEAR_DAMPING)
 
   function this:renderStart(player) end
   function this:renderGroup(group) end
@@ -187,7 +189,7 @@ function class.newLevel()
   this.player = class.newPlayer(this.world)
   this.texture = lovr.graphics.newTexture(width, height, textureOptions)
   this.pass = lovr.graphics.newPass(this.texture)
-  this.selectedItem = nil
+  
 
   -- World setup
   this.world:disableCollisionBetween("player", "item")
@@ -267,41 +269,34 @@ function class.newLevel()
   end
 
   local function drawSelector(pass)
-    if this.selectedItem then
-      pass:push()
-      pass:setColor(.8, .4, .4, .6)
-      pass:setDepthTest("none")
-      local cameraPosition = vec3(this.player.camera:getPosition())
-      local position = vec3(this.selectedItem.collider:getPosition())
-      local radius = cameraPosition:distance(position) ^ .2 / 6
-      local scale = vec3(radius, radius, radius / 16)
-      local orientation = quat(this.player.camera:getOrientation())
-      pass:torus(position, scale, orientation)
-      pass:pop()
+    pass:push()
+    pass:setColor(.8, .4, .4, .6)
+    pass:setDepthTest("none")
+    for _, item in ipairs(this.items) do
+      if item.active and not item.held then
+        local cameraPosition = vec3(this.player.camera:getPosition())
+        local position = vec3(item.collider:getPosition())
+        local radius = cameraPosition:distance(position) ^ .2 / 6
+        local scale = vec3(radius, radius, radius / 16)
+        local orientation = quat(this.player.camera:getOrientation())
+        pass:torus(position, scale, orientation)
+      end
     end
+    pass:pop()
   end
 
   local function updateItemActivation()
     for _, item in ipairs(this.items) do
-      local cameraPosition = vec3(this.player.camera:getPosition())
-      local itemPosition = vec3(item.collider:getPosition())
-      if cameraPosition:distance(itemPosition) < item.range then
-        item.active = true
-      else
-        item.active = false
+      if not item.held then
+        local cameraPosition = vec3(this.player.camera:getPosition())
+        local itemPosition = vec3(item.collider:getPosition())
+        if cameraPosition:distance(itemPosition) < item.range then
+          item.active = true
+        else
+          item.active = false
+        end
       end
     end
-  end
-
-  local function updateSelectedItem()
-    local selectedItem = nil
-    for _, item in ipairs(this.items) do
-      if item.active and not item.held then
-        selectedItem = item
-        break
-      end
-    end
-    this.selectedItem = selectedItem
   end
 
   function this:draw(pass)
@@ -319,7 +314,6 @@ function class.newLevel()
 
   function this:update(dt)
     updateItemActivation()
-    updateSelectedItem()
     for _, group in ipairs(this.groups) do
       group:update(dt)
     end
@@ -328,6 +322,48 @@ function class.newLevel()
     end
     this.player:update(dt)
     this.world:update(dt)
+  end
+
+  function this:action()
+    local cameraPosition = vec3(this.player.camera:getPosition())
+    local closestItem = nil
+    local closestDistance = nil
+    for _, item in ipairs(this.items) do
+      if item.active and not item.held then
+        local itemPosition = vec3(item.collider:getPosition())
+        local distance = cameraPosition:distance(itemPosition)
+        if not closestDistance or distance < closestDistance then
+          closestDistance = distance
+          closestItem = item
+        end
+      end
+    end
+    if closestItem then
+      closestItem.held = true
+      closestItem.active = true
+      closestItem.collider:setKinematic(true)
+    else
+      local randomItem = {}
+      for _, item in ipairs(this.items) do
+        if item.held then
+          table.insert(randomItem, item)
+        end
+      end
+      if #randomItem > 0 then
+        local index = math.floor(math.random() * #randomItem) + 1
+        local item = randomItem[index]
+        local forwardX = -this.player.camera[9]
+        local forwardY = -this.player.camera[10]
+        local forwardZ = -this.player.camera[11]
+        local forward = vec3(forwardX, forwardY, forwardZ)
+        local impulse = vec3(forwardX, forwardY + 0.4, forwardZ) * 4
+        item.held = false
+        item.active = true
+        item.collider:setKinematic(false)
+        item.collider:setPosition(cameraPosition + forward / 4)
+        item.collider:applyLinearImpulse(impulse)
+      end
+    end
   end
 
   return this
