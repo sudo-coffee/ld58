@@ -80,6 +80,7 @@ function class.newPlayer(world)
 
     -- Update velocity
     local deltaX, _, deltaZ = getPlayerDelta(this.camera, moveX, moveZ)
+    print(moveX, moveZ)
     local deltaH = lovr.math.vec2(deltaX, deltaZ)
     local _, oldY, _ = this.collider:getLinearVelocity()
     local newH = lovr.math.vec2(oldX, oldZ)
@@ -208,7 +209,8 @@ function class.newLevel()
 
   function this:draw(pass)
     pass:push()
-    pass:transform(this.player.camera)
+    pass:translate(lovr.math.vec3(this.player.camera:getPosition()):mul(-1))
+    pass:rotate(this.player.camera:getOrientation())
     renderGroups()
     drawRenders(pass)
     drawItems(pass)
