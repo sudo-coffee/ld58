@@ -9,7 +9,15 @@ local input = {}
 local mouseVec = lovr.math.newVec2()
 local steps = 0
 local movesSinceWindowFocused = 0
-local lastGamepad = nil
+local padLeft = false
+local padRight = false
+local padA = false
+local padB = false
+local padX = false
+local padY = false
+local padDLeft = false
+local padDRight = false
+local padStart = false
 
 -- \ --------- \ --------------------------------------------------------- \ --
 -- | callbacks | --------------------------------------------------------- | --
@@ -17,6 +25,8 @@ local lastGamepad = nil
 
 function input.action() end
 function input.exit() end
+function input.menuLeft() end
+function input.menuRight() end
 
 -- \ ------ \ ------------------------------------------------------------ \ --
 -- | public | ------------------------------------------------------------ | --
@@ -25,7 +35,6 @@ function input.exit() end
 function input.load()
   mouse.setRelativeMode(true) -- Toggle this for menus
   mouse.setPosition(0, 0)
-  lastGamepad = gc.getGamepadState(1)
 end
 
 function input.update(dt)
@@ -37,18 +46,62 @@ function input.update(dt)
     mouseVec.x = 0
     mouseVec.y = 0
   end
+  local padX = gc.getGamepadState(1).axes[GAMEPAD_AXIS_LEFT_X]
+  if not padRight and padX > 0.8 then
+    padRight = true
+    input.menuRight()
+  elseif padRight and padX < 0.4 then
+    padRight = false
+  end
+  if not padLeft and padX < -0.8 then
+    padLeft = true
+    input.menuLeft()
+  elseif padLeft and padX > -0.4 then
+    padLeft = false
+  end
   local buttons = gc.getGamepadState(1).buttons
-  local last = lastGamepad.buttons
-  gamepad = gc.getGamepadState(1)
-  local a = buttons[GAMEPAD_BUTTON_A] and not last[GAMEPAD_BUTTON_A]
-  local b = buttons[GAMEPAD_BUTTON_A] and not last[GAMEPAD_BUTTON_A]
-  local x = buttons[GAMEPAD_BUTTON_A] and not last[GAMEPAD_BUTTON_A]
-  local y = buttons[GAMEPAD_BUTTON_A] and not last[GAMEPAD_BUTTON_A]
-  local st = buttons[GAMEPAD_BUTTON_START] and not last[GAMEPAD_BUTTON_START]
-  local ba = buttons[GAMEPAD_BUTTON_BACK] and not last[GAMEPAD_BUTTON_BACK]
-  if a or b or x or y then input.action() end
-  if st or ba then input.exit() end
-  lastGamepad = gc.getGamepadState(1)
+  if not padA and buttons[GAMEPAD_BUTTON_A] == 1 then
+    padA = true
+    input.action()
+  elseif padA and buttons[GAMEPAD_BUTTON_A] == 0 then
+    padA = false
+  end
+  if not padB and buttons[GAMEPAD_BUTTON_B] == 1 then
+    padB = true
+    input.action()
+  elseif padB and buttons[GAMEPAD_BUTTON_B] == 0 then
+    padB = false
+  end
+  if not padX and buttons[GAMEPAD_BUTTON_X] == 1 then
+    padX = true
+    input.action()
+  elseif padX and buttons[GAMEPAD_BUTTON_X] == 0 then
+    padX = false
+  end
+  if not padY and buttons[GAMEPAD_BUTTON_Y] == 1 then
+    padY = true
+    input.action()
+  elseif padY and buttons[GAMEPAD_BUTTON_Y] == 0 then
+    padY = false
+  end
+  if not padDLeft and buttons[GAMEPAD_BUTTON_DPAD_LEFT] == 1 then
+    padDLeft = true
+    input.menuLeft()
+  elseif padDLeft and buttons[GAMEPAD_BUTTON_DPAD_LEFT] == 0 then
+    padDLeft = false
+  end
+  if not padDRight and buttons[GAMEPAD_BUTTON_DPAD_RIGHT] == 1 then
+    padDRight = true
+    input.menuRight()
+  elseif padDRight and buttons[GAMEPAD_BUTTON_DPAD_RIGHT] == 0 then
+    padDRight = false
+  end
+  if not padStart and buttons[GAMEPAD_BUTTON_START] == 1 then
+    padStart = true
+    input.exit()
+  elseif padStart and buttons[GAMEPAD_BUTTON_START] == 0 then
+    padStart = false
+  end
 end
 
 function input.mousemoved(x, y, dx, dy)
@@ -63,6 +116,15 @@ end
 function input.keypressed(key, scancode, repeated)
   if key == "space" then input.action() end
   if key == "escape" then input.exit() end
+  if key == "return" then input.action() end
+  if key == "a" then input.menuLeft() end
+  if key == "left" then input.menuLeft() end
+  if key == "d" then input.menuRight() end
+  if key == "right" then input.menuRight() end
+end
+
+function input.mousepressed(x, y, button)
+  if button == 1 then input.action() end
 end
 
 function input.getTurnVector()
