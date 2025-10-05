@@ -19,8 +19,8 @@ function groups.room(world)
   end
 
   function this:draw(pass)
-    super:draw(pass)
-    pass:box(0, -0.5, 0, 10, 1, 10)
+    pass:box(0, -0.5, 0, 10, 1, 10, 0, 0, 1, 0, "line")
+    pass:cube(0, 0, -5, 2, 0, 0, 1, 0, "line") -- test
   end
 
   return this

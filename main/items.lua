@@ -16,16 +16,24 @@ function items.base(world)
   this.texture = lovr.graphics.newTexture(800, 800, textureOptions)
   this.pass = lovr.graphics.newPass(this.texture)
 
-  function this:renderStart()
+  function this:renderStart(player)
     this.texture:clear()
+    this.pass:reset()
+    class.transformPass(this.pass, player.camera)
   end
 
   function this:renderGroup(group)
-    group:draw(pass)
+    group:draw(this.pass)
   end
 
   function this:drawRender(pass)
-    pass:cube(0, 0, -5, 2, 0, 0, 1, 0, "line")
+    -- pass:box(0, -0.5, 0, 10, 1, 10, 0, 0, 1, 0, "line")
+    -- pass:cube(0, 0, -5, 2, 0, 0, 1, 0, "line") -- test
+    pass:push()
+    pass:origin()
+    lovr.graphics.submit(this.pass)
+    pass:fill(this.texture)
+    pass:pop()
   end
 
   return this

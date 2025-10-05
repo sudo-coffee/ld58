@@ -2,7 +2,7 @@ local input = require("input")
 local class = {}
 
 -- \ ------- \ ----------------------------------------------------------- \ --
--- | helpers | ----------------------------------------------------------- | --
+-- | private | ----------------------------------------------------------- | --
 -- \ ------- \ ----------------------------------------------------------- \ --
 
 -- In radians
@@ -26,9 +26,10 @@ end
 -- In meters
 local function getPlayerDelta(transform, vecX, vecZ)
   local position = lovr.math.vec3(transform:getPosition())
-  local back = lovr.math.vec3(transform[9], 0, transform[11]):normalize()
-  local right = lovr.math.vec3(transform[1], 0, transform[3]):normalize()
+  local back = lovr.math.vec3(-transform[9], 0, transform[11]):normalize()
+  local right = lovr.math.vec3(transform[1], 0, -transform[3]):normalize()
   local delta = right * vecX + back * vecZ
+  print(delta)
   return delta.x, delta.y, delta.z
 end
 
@@ -44,13 +45,26 @@ local function printPlayerInfo(player)
   print(string.format("rotation : % 5.2f % 5.2f % 5.2f", degX, degY, degZ))
 end
 
+-- \ ------- \ ----------------------------------------------------------- \ --
+-- | helpers | ----------------------------------------------------------- | --
+-- \ ------- \ ----------------------------------------------------------- \ --
+
+function class.transformPass(pass, transform)
+  local orientation = lovr.math.quat(transform:getOrientation())
+  local radX, radY, radZ = orientation:getEuler()
+  pass:rotate(radX, 1, 0, 0)
+  pass:rotate(radY, 0, 1, 0)
+  pass:rotate(radZ, 0, 0, 1)
+  pass:translate(lovr.math.vec3(transform:getPosition()):mul(-1))
+end
+
 -- \ ----- \ ------------------------------------------------------------- \ --
 -- | const | ------------------------------------------------------------- | --
 -- \ ----- \ ------------------------------------------------------------- \ --
 
-local MAX_VELOCITY = 1
-local ACCELERATION = 40
-local DECELERATION = 10
+local MAX_VELOCITY = 1.6
+local ACCELERATION = 20
+local DECELERATION = 0.6
 local TURN_SPEED = 1
 local EYE_HEIGHT = 1.3
 
@@ -80,11 +94,10 @@ function class.newPlayer(world)
 
     -- Update velocity
     local deltaX, _, deltaZ = getPlayerDelta(this.camera, moveX, moveZ)
-    print(moveX, moveZ)
     local deltaH = lovr.math.vec2(deltaX, deltaZ)
-    local _, oldY, _ = this.collider:getLinearVelocity()
+    local oldX, oldY, oldZ = this.collider:getLinearVelocity()
     local newH = lovr.math.vec2(oldX, oldZ)
-    if deltaH:length() == 0 then newH:div(DECELERATION) end
+    if deltaH:length() == 0 then newH:div(DECELERATION + 1) end
     newH:add(deltaH * dt * ACCELERATION)
     newH:div(math.max(1, newH:length() / MAX_VELOCITY))
 
@@ -133,7 +146,7 @@ function class.newItem(world)
   this.filter = {}
 
   function this:update(dt) end
-  function this:renderStart() end
+  function this:renderStart(player) end
   function this:renderGroup(group) end
   function this:renderEnd() end
   function this:drawRender(pass) end
@@ -158,12 +171,11 @@ function class.newLevel()
   local function renderGroups()
     for _, item in ipairs(this.items) do
       if item.active then
-        item:renderStart()
+        item:renderStart(this.player)
         for _, group in ipairs(this.groups) do
           for _, name in ipairs(item.filter) do
-            if item.name == name then
+            if group.name == name then
               item:renderGroup(group)
-              print("hi")
             end
           end
         end
@@ -209,8 +221,7 @@ function class.newLevel()
 
   function this:draw(pass)
     pass:push()
-    pass:translate(lovr.math.vec3(this.player.camera:getPosition()):mul(-1))
-    pass:rotate(this.player.camera:getOrientation())
+    class.transformPass(pass, this.player.camera)
     renderGroups()
     drawRenders(pass)
     drawItems(pass)
