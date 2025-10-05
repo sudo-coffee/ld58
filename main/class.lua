@@ -107,9 +107,10 @@ function class.newPlayer(world)
     this.camera:set(position, orientation)
   
     -- Wrap to top of world, adjust gravity
-    this.collider:setGravityScale(math.abs(posY) / 64 + 1)
-    if posY < -256 then
-      this.collider:setPosition(posX, posY + 512, posZ)
+    local scale = math.abs(posY - math.max(posY, 0) / 1.1) / 4 + 1
+    this.collider:setGravityScale(scale)
+    if posY < -1024 then
+      this.collider:setPosition(posX, posY + 2048, posZ)
     end
   end
 
@@ -160,9 +161,10 @@ function class.newItem(world)
 
   function this:update(dt)
     local posX, posY, posZ = this.collider:getPosition()
-    this.collider:setGravityScale(math.abs(posY) / 64 + 1)
-    if posY < -256 then
-      this.collider:setPosition(posX, posY + 512, posZ)
+    local scale = math.abs(posY - math.max(posY, 0) / 1.1) / 4 + 1
+    this.collider:setGravityScale(scale)
+    if posY < -1024 then
+      this.collider:setPosition(posX, posY + 2048, posZ)
     end
   end
 
