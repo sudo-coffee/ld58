@@ -2,15 +2,10 @@ local input = require("input")
 local class = require("class")
 local levels = require("levels")
 local level = nil
-local delay = 100
-local started = false
 
 -- \ ------- \ ----------------------------------------------------------- \ --
 -- | helpers | ----------------------------------------------------------- | --
 -- \ ------- \ ----------------------------------------------------------- \ --
-
-local function start()
-end
 
 -- \ --------- \ --------------------------------------------------------- \ --
 -- | callbacks | --------------------------------------------------------- | --
@@ -24,7 +19,6 @@ end
 function lovr.update(dt)
   input.update(dt)
   level:update(dt)
-  -- print(lovr.system.getWindowDimensions())
 end
 
 function lovr.draw(pass)

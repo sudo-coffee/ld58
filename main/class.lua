@@ -78,8 +78,8 @@ function class.newPlayer(world)
 
   function this:update(dt)
     -- Input vectors
-    local moveX, _, moveZ = input.getMoveVector()
-    local turnX, turnY, _ = input.getTurnVector()
+    local moveX, moveZ = input.getMoveVector()
+    local turnY, turnX = input.getTurnVector()
 
     -- Update camera rotation
     playerTurn(this.camera, turnX * TURN_SPEED, turnY * TURN_SPEED)
