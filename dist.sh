@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Project name
-name="Temp Name"
+name="The Glasses Shop"
 
 # Setup
 mkdir -p "dist"

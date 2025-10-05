@@ -4,7 +4,7 @@ local class = {}
 local theend = false
 
 -- global
-local source = lovr.audio.newSource("assets/wind.mp3")
+source = lovr.audio.newSource("assets/wind.mp3")
 source:play()
 source:setVolume(0)
 source:setLooping(true)
@@ -125,7 +125,7 @@ function class.newPlayer(world)
     elseif posY < 0 then
       this.collider:setGravityScale(math.abs(posY) + 1)
     end
-    
+
     -- Set sound effect volume
     velX, velY, velZ = this.collider:getLinearVelocity()
     source:setVolume(math.max(math.min(-velY / 128, 0.8), 0))
